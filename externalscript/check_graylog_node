@@ -1,6 +1,9 @@
 #!/bin/bash
 # set -x
 
+# Debug override
+DEBUG=1
+
 ## Defaults ##
 CREDS_FILE=$(dirname $BASH_SOURCE)/check_graylog_node_creds.txt
 source $CREDS_FILE
@@ -181,7 +184,7 @@ debug() {
     fi
 }
 
-debug "[$PID] [General info] Starting $0 -- log at $LOG"
+debug "[$PID] [General info] Starting $0"
 
 case $ATTR in
     node_id)                                get_node_info; get_node_id                                                     ;;
