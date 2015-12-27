@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>2.0</version>
-    <date>2015-12-27T02:47:39Z</date>
+    <date>2015-12-27T12:00:40Z</date>
     <groups>
         <group>
             <name>Templates</name>
@@ -11,7 +11,7 @@
         <template>
             <template>Template graylog2 server</template>
             <name>Template graylog2 server</name>
-            <description>Monitoring for graylog2 server.</description>
+            <description/>
             <groups>
                 <group>
                     <name>Templates</name>
@@ -196,7 +196,7 @@
                     <logtimefmt/>
                 </item>
                 <item>
-                    <name>Cluster name</name>
+                    <name>Cluster id</name>
                     <type>10</type>
                     <snmp_community/>
                     <multiplier>0</multiplier>
@@ -804,6 +804,128 @@
             <screens/>
         </template>
     </templates>
+    <triggers>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;buffer_input_utilization_percent&quot;].avg(300)}&gt;80</expression>
+            <name>Buffer input utilization is over 80%</name>
+            <url/>
+            <status>1</status>
+            <priority>2</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;buffer_output_utilization_percent&quot;].avg(300)}&gt;80</expression>
+            <name>Buffer output utilization is over 80%</name>
+            <url/>
+            <status>1</status>
+            <priority>2</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;es_cluster_health&quot;].str(red)}=1</expression>
+            <name>ES cluster health is RED</name>
+            <url/>
+            <status>0</status>
+            <priority>4</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;es_cluster_health&quot;].str(yellow)}=1</expression>
+            <name>ES cluster health is YELLOW</name>
+            <url/>
+            <status>0</status>
+            <priority>2</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;journal_events_append&quot;].avg(300)}&gt;1000</expression>
+            <name>Journal append events stacking up</name>
+            <url/>
+            <status>1</status>
+            <priority>3</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;journal_events_read&quot;].avg(300)}&gt;1000</expression>
+            <name>Journal read events stacking up</name>
+            <url/>
+            <status>1</status>
+            <priority>2</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;journal_uncommitted_entries&quot;].avg(300)}&gt;1000</expression>
+            <name>Journal uncommitted entries are stacking up</name>
+            <url/>
+            <status>1</status>
+            <priority>3</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;node_cluster&quot;].change(0)}&lt;0</expression>
+            <name>Node cluster ID changed</name>
+            <url/>
+            <status>0</status>
+            <priority>1</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;node_id&quot;].change(0)}&lt;0</expression>
+            <name>Node ID changed</name>
+            <url/>
+            <status>0</status>
+            <priority>1</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;lb_status&quot;].str(ALIVE)}=0</expression>
+            <name>Node is marked as DOWN</name>
+            <url/>
+            <status>0</status>
+            <priority>2</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;node_is_master&quot;].change(0)}&lt;0</expression>
+            <name>Node master status changed</name>
+            <url/>
+            <status>0</status>
+            <priority>1</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
+            <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;node_transport&quot;].change(0)}&lt;0</expression>
+            <name>Node transport info changed</name>
+            <url/>
+            <status>0</status>
+            <priority>1</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+    </triggers>
     <graphs>
         <graph>
             <name>Journal stack graph</name>
