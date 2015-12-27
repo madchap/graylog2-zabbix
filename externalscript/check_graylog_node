@@ -99,7 +99,7 @@ write_json_file() {
 NODE_INFO_FILE=/tmp/${HOSTNAME}-node.json
 get_node_info() {
     debug "Getting node info from $NODE_INFO_FILE "
-    if [ ! -e $NODE_INFO_FILE ] || [ `check_file_age $NODE_INFO_FILE` -ne 0 ]; then
+    if [ ! -e $NODE_INFO_FILE ] || [ ! -s $NODE_INFO_FILE ] || [ `check_file_age $NODE_INFO_FILE` -ne 0 ]; then
         debug "Info file doesn't exist or too old. Updating."
         write_json_file "/system/cluster/node" $NODE_INFO_FILE
     fi
@@ -115,7 +115,7 @@ get_node_type() { jq -r '.type' $NODE_INFO_FILE ; }
 JOURNAL_INFO_FILE=/tmp/${HOSTNAME}-journal.json
 get_system_journal_info() { 
     debug "Getting journal info from $JOURNAL_INFO_FILE"
-    if [ ! -e $JOURNAL_INFO_FILE ] || [ `check_file_age $JOURNAL_INFO_FILE` -ne 0 ]; then
+    if [ ! -e $JOURNAL_INFO_FILE ] || [ ! -s $JOURNAL_INFO_FILE ] || [ `check_file_age $JOURNAL_INFO_FILE` -ne 0 ]; then
         debug "Info file doesn't exist or too old. Updating."
         write_json_file "/system/journal" $JOURNAL_INFO_FILE
     fi
@@ -131,7 +131,7 @@ get_system_journal_uncommitted_entries() { jq -r '.uncommitted_journal_entries' 
 BUFFER_INFO_FILE=/tmp/${HOSTNAME}-buffer.json
 get_system_buffer_info() {
     debug "Getting buffer info from $BUFFER_INFO_FILE"
-    if [ ! -e $BUFFER_INFO_FILE ] || [ `check_file_age $BUFFER_INFO_FILE` -ne 0 ]; then
+    if [ ! -e $BUFFER_INFO_FILE ] || [ ! -s $BUFFER_INFO_FILE ] || [ `check_file_age $BUFFER_INFO_FILE` -ne 0 ]; then
         debug "Info file doesn't exist or too old. Updating."
         write_json_file "/system/buffers" $BUFFER_INFO_FILE
     fi
