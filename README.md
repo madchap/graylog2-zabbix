@@ -21,7 +21,8 @@ This doesn't require anything on the agent. It is an external script curl'ing to
   * Add template to     graylog server
 
 ## Usage
-```check_graylog_node -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h]
+```
+check_graylog_node -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h]
 
 Args:
     -H : Hostname or IP address of graylog server
