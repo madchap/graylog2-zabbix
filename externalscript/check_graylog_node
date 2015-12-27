@@ -15,12 +15,13 @@ PID=$$
 
 usage() {
     cat <<EOF
-Usage: $0 -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h]
+Usage: $0 -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h] [-d]
 
 Args:
     -H : Hostname or IP address of graylog server
     -a : Attribute to monitor. See list below.
     -p : Graylog API port (default: 12900)
+    -d : Debug message to log file (default: false)
     -h : Displays help
 
 List of attributes:
@@ -46,7 +47,7 @@ List of attributes:
 EOF
 }
 
-while getopts hH:a:p::l: opts; do
+while getopts hH:a:p::l:d opts; do
     case $opts in
         H)  HOSTNAME=$OPTARG
             ;;
@@ -55,6 +56,8 @@ while getopts hH:a:p::l: opts; do
         p)  APIPORT=$OPTARG
             ;;
         h)  usage; exit 0
+            ;;
+        d)  DEBUG=1
             ;;
         :)  echo "Option -$OPTARG requires an argument."
             exit 1
@@ -172,9 +175,13 @@ get_total_message_count() { ${CURL_BASE_CMD}/count/total | jq -r .events ; }
 get_es_cluster_status() { ${CURL_BASE_CMD}/system/indexer/cluster/health | jq -r .status ; }
 get_node_throughput() { ${CURL_BASE_CMD}/system/throughput | jq -r .throughput ; }
 
-debug() { echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') $@" >> $LOG ; }
+debug() { 
+    if [ ! -z $DEBUG ]; then
+        echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') $@" >> $LOG
+    fi
+}
 
-# debug "[$PID]Starting $0 -- log at $LOG"
+debug "[$PID] [General info] Starting $0 -- log at $LOG"
 
 case $ATTR in
     node_id)                                get_node_info; get_node_id                                                     ;;
@@ -198,3 +205,5 @@ case $ATTR in
     
     *)  echo "Unknown attribute to monitor."                                                                               ;;
 esac
+
+debug "[$PID] [General info] Ending $0"
