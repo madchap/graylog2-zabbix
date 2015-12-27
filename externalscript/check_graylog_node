@@ -1,0 +1,176 @@
+#!/bin/bash
+# set -x
+
+## Defaults ##
+CREDS_FILE=$(dirname $BASH_SOURCE)/check_graylog_node_creds.txt
+source $CREDS_FILE
+LOG=/tmp/$(basename $0).log
+# Default graylog API port
+APIPORT=12900
+# if several checks are made against a single API endpoint, then use the file for this amount of seconds since the last write.
+JSON_FRESHNESS=30
+## End defaults  ##
+
+usage() {
+    cat <<EOF
+Usage: $0 -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h]
+
+Args:
+    -H : Hostname or IP address of graylog server
+    -a : Attribute to monitor. See list below.
+    -p : Graylog API port (default: 12900)
+    -h : Displays help
+
+List of attributes:
+    - node_id : returns graylog node_id
+    - node_transport
+    - node_is_master
+    - node_cluster
+    - node_type
+    - node_throughput
+    - lb_status
+    - total_message_count : return the node's message count
+    - es_cluster_health : return elasticsearch's cluster health
+    - journal_size
+    - journal_num_segments
+    - journal_uncommitted_entries
+    - journal_events_read
+    - journal_events_append
+    - buffer_input_utilization
+    - buffer_output_utilization
+    - buffer_input_utilization_percent
+    - buffer_output_utilization_percent
+
+EOF
+}
+
+while getopts hH:a:p::l: opts; do
+    case $opts in
+        H)  HOSTNAME=$OPTARG
+            ;;
+        a)  ATTR=$OPTARG
+            ;;
+        p)  APIPORT=$OPTARG
+            ;;
+        h)  usage; exit 0
+            ;;
+        :)  echo "Option -$OPTARG requires an argument."
+            exit 1
+            ;;
+        *)  echo "Invalid option -${OPTARG}."
+            exit 1
+            ;;
+    esac
+done
+
+# exit if less than 2 attributes are passed in
+[[ $OPTIND -lt 4 ]] && usage && exit 1
+
+check_file_age() {
+    # FIXME LINUX ONLY
+    if [ -e $1 ]; then
+        STATC=`stat -c %Y $1`
+        NOW=`date +%s`
+        let DIFF=$NOW-$STATC
+   
+        if [ "$DIFF" -gt "$JSON_FRESHNESS" ]; then
+            echo 1
+        else
+            echo 0
+        fi
+    fi
+}
+
+CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD} -s http://${HOSTNAME}:${APIPORT}"
+
+write_json_file() {
+    # $1 = URI -- $2 filename
+    if [ ! -e ${2}.lock ]; then
+        debug "Locking ${2}.lock"
+        touch ${2}.lock
+        debug "Pulling json data into $2"
+        ${CURL_BASE_CMD}${1} | jq '.' > $2
+    fi
+    debug "Unlocking ${2}.lock"
+    rm -f ${2}.lock
+}
+
+# Node related information -- /system/cluster/node
+NODE_INFO_FILE=/tmp/${HOSTNAME}-node.json
+get_node_info() {
+    debug "Getting node info from $NODE_INFO_FILE "
+    if [ ! -e $NODE_INFO_FILE ] || [ `check_file_age $NODE_INFO_FILE` -ne 0 ]; then
+        debug "Info file doesn't exist or too old. Updating."
+        write_json_file "/system/cluster/node" $NODE_INFO_FILE
+    fi
+}
+get_node_id() { jq -r '.node_id' $NODE_INFO_FILE ; }
+get_node_transport_addr() { jq -r '.transport_address' $NODE_INFO_FILE ; }
+get_node_is_master() { jq -r '.is_master' $NODE_INFO_FILE ; }
+get_node_cluster() { jq -r '.cluster_id' $NODE_INFO_FILE ; }
+get_node_type() { jq -r '.type' $NODE_INFO_FILE ; }
+
+
+# Journal related information -- /system/journal
+JOURNAL_INFO_FILE=/tmp/${HOSTNAME}-journal.json
+get_system_journal_info() { 
+    debug "Getting journal info from $JOURNAL_INFO_FILE"
+    if [ ! -e $JOURNAL_INFO_FILE ] || [ `check_file_age $JOURNAL_INFO_FILE` -ne 0 ]; then
+        debug "Info file doesn't exist or too old. Updating."
+        write_json_file "/system/journal" $JOURNAL_INFO_FILE
+    fi
+}
+get_system_journal_events_read() { jq -r '.read_events_per_second' $JOURNAL_INFO_FILE ; }
+get_system_journal_events_append() { jq -r '.append_events_per_second' $JOURNAL_INFO_FILE ; }
+get_system_journal_size() { jq -r '.journal_size' $JOURNAL_INFO_FILE ; }
+get_system_journal_num_segments() { jq -r '.number_of_segments' $JOURNAL_INFO_FILE ; }
+get_system_journal_uncommitted_entries() { jq -r '.uncommitted_journal_entries' $JOURNAL_INFO_FILE ; }
+
+
+# Buffer related information -- /system/buffers
+BUFFER_INFO_FILE=/tmp/${HOSTNAME}-buffer.json
+get_system_buffer_info() {
+    debug "Getting buffer info from $BUFFER_INFO_FILE"
+    if [ ! -e $BUFFER_INFO_FILE ] || [ `check_file_age $BUFFER_INFO_FILE` -ne 0 ]; then
+        debug "Info file doesn't exist or too old. Updating."
+        write_json_file "/system/buffers" $BUFFER_INFO_FILE
+    fi
+}
+get_system_buffer_input_utilization() { jq -r '.buffers.input.utilization' $BUFFER_INFO_FILE ; }
+get_system_buffer_input_utilization_percent() { jq -r '.buffers.input.utilization_percent' $BUFFER_INFO_FILE ; }
+get_system_buffer_output_utilization() { jq -r '.buffers.output.utilization' $BUFFER_INFO_FILE ; }
+get_system_buffer_output_utilization_percent() { jq -r '.buffers.output.utilization_percent' $BUFFER_INFO_FILE ; }
+
+
+# Various ungrouped checks
+get_lb_status() { ${CURL_BASE_CMD}/system/lbstatus ;  }
+get_total_message_count() { ${CURL_BASE_CMD}/count/total | jq -r .events ; }
+get_es_cluster_status() { ${CURL_BASE_CMD}/system/indexer/cluster/health | jq -r .status ; }
+get_node_throughput() { ${CURL_BASE_CMD}/system/throughput | jq -r .throughput ; }
+
+debug() { echo "$(date '+%Y%m%d %H:%M:%S') : $@" >> $LOG ; }
+
+# debug "Starting $0 -- log at $LOG"
+
+case $ATTR in
+    node_id)                                get_node_info; get_node_id                                                     ;;
+    node_transport)                         get_node_info; get_node_transport_addr                                         ;;
+    node_is_master)                         get_node_info; get_node_is_master                                              ;;
+    node_cluster)                           get_node_info; get_node_cluster                                                ;;
+    node_type)                              get_node_info; get_node_type                                                   ;;
+    journal_events_read)                    get_system_journal_info; get_system_journal_events_read                        ;;
+    journal_events_append)                  get_system_journal_info; get_system_journal_events_append                      ;; 
+    journal_size)                           get_system_journal_info; get_system_journal_size                               ;; 
+    journal_num_segments)                   get_system_journal_info; get_system_journal_num_segments                       ;; 
+    journal_uncommitted_entries)            get_system_journal_info; get_system_journal_uncommitted_entries                ;;
+    buffer_input_utilization)               get_system_buffer_info; get_system_buffer_input_utilization                    ;;
+    buffer_input_utilization_percent)       get_system_buffer_info; get_system_buffer_input_utilization_percent            ;;
+    buffer_output_utilization)              get_system_buffer_info; get_system_buffer_output_utilization                   ;;
+    buffer_output_utilization_percent)      get_system_buffer_info; get_system_buffer_output_utilization_percent           ;;
+    lb_status)                              get_lb_status                                                                  ;;
+    total_message_count)                    get_total_message_count                                                        ;;
+    es_cluster_health)                      get_es_cluster_status                                                          ;;
+    node_throughput)                        get_node_throughput                                                            ;;
+    
+    *)  echo "Unknown attribute to monitor."                                                                               ;;
+esac

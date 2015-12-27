@@ -1,0 +1,2 @@
+USERNAME=monitoring
+PASSWORD=monitoring
