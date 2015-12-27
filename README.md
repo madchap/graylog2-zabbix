@@ -4,25 +4,29 @@ Basic Zabbix monitoring for Graylog2
 Mainly written for my own use, please feel to fork/use and give feedback.
 Written using Zabbix 2.4 and Graylog 1.3. Lightly tested, but does no harm anyway.
 
-Requirements:
+For specific Elasticsearch monitoring, please head over to Elastizabbix (https://github.com/mkhpalm/elastizabbix)
+
+## Requirements
   * jq (https://github.com/stedolan/jq)
   * curl
 
 This doesn't require anything on the agent. It is an external script curl'ing to the Graylog2 API.
 
-How to install:
+## How to install
   * Create a Graylog2 user with the "reader" role
   * Enter the credentials in the check_graylog_node_creds.txt file.
   * Copy the 2 files to your zabbix's externalscripts directory
   * Make sure your files permissions are adequate
-  * Import the template in Zabbix
+  * Import the XML template in Zabbix
+  * Add template to     graylog server
 
-Usage:
-check_graylog_node -H <HOSTNAME> -a <ATTRIBUTE> [-h]
+## Usage
+```check_graylog_node -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h]
 
 Args:
     -H : Hostname or IP address of graylog server
     -a : Attribute to monitor. See list below.
+    -p : Graylog API port (default: 12900)
     -h : Displays help
 
 List of attributes:
@@ -44,3 +48,5 @@ List of attributes:
     - buffer_output_utilization
     - buffer_input_utilization_percent
     - buffer_output_utilization_percent
+```
+
