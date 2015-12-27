@@ -9,6 +9,7 @@ LOG=/tmp/$(basename $0).log
 APIPORT=12900
 # if several checks are made against a single API endpoint, then use the file for this amount of seconds since the last write.
 JSON_FRESHNESS=30
+LOCK_FRESHNESS=5
 PID=$$
 ## End defaults  ##
 
@@ -68,13 +69,14 @@ done
 [[ $OPTIND -lt 4 ]] && usage && exit 1
 
 check_file_age() {
+    # $1 filename $2 freshness value
     # FIXME LINUX ONLY
     if [ -e $1 ]; then
         STATC=`stat -c %Y $1`
         NOW=`date +%s`
         let DIFF=$NOW-$STATC
    
-        if [ "$DIFF" -gt "$JSON_FRESHNESS" ]; then
+        if [ "$DIFF" -gt "$2" ]; then
             echo 1
         else
             echo 0
@@ -98,7 +100,7 @@ _write_json_file() {
         debug "[$PID] [$(basename $2)] \t\t--> $runtime ms"
         debug "[$PID] [$(basename $2)] \t\tUnlocking ${2}.lock"
         rm -f ${2}.lock
-    elif [ `check_file_age $2.lock` -ne 0 ]; then
+    elif [ `check_file_age $2.lock $LOCK_FRESHNESS` -ne 0 ]; then
         # Under heavy load, process may just not finish and leave a stale .lock file.
         debug "[$PID] [$(basename $2)] \t\tStale lock detected! Removing ${2}.lock"
         unlink $2.lock
@@ -111,7 +113,7 @@ _write_json_file() {
 
 get_json_info() {
     # $1 = URI -- $2 filename
-    if [ ! -e $2 ] || [ ! -s $2 ] || [ `check_file_age $2` -ne 0 ]; then
+    if [ ! -e $2 ] || [ ! -s $2 ] || [ `check_file_age $2 $JSON_FRESHNESS` -ne 0 ]; then
         # if the json file doesn't exist, or is 0 byte or is too old, update.
         debug "[$PID] [$(basename $2)] \tInfo file doesn't exist or too old. Updating."
         _write_json_file $1 $2
