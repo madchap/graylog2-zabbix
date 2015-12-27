@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zabbix_export>
     <version>2.0</version>
-    <date>2015-12-27T12:00:40Z</date>
+    <date>2015-12-27T19:46:21Z</date>
     <groups>
         <group>
             <name>Templates</name>
@@ -23,6 +23,51 @@
                 </application>
             </applications>
             <items>
+                <item>
+                    <name>API port status</name>
+                    <type>3</type>
+                    <snmp_community/>
+                    <multiplier>0</multiplier>
+                    <snmp_oid/>
+                    <key>net.tcp.service[http,{HOST.CONN},12900]</key>
+                    <delay>30</delay>
+                    <history>90</history>
+                    <trends>365</trends>
+                    <status>0</status>
+                    <value_type>3</value_type>
+                    <allowed_hosts/>
+                    <units/>
+                    <delta>0</delta>
+                    <snmpv3_contextname/>
+                    <snmpv3_securityname/>
+                    <snmpv3_securitylevel>0</snmpv3_securitylevel>
+                    <snmpv3_authprotocol>0</snmpv3_authprotocol>
+                    <snmpv3_authpassphrase/>
+                    <snmpv3_privprotocol>0</snmpv3_privprotocol>
+                    <snmpv3_privpassphrase/>
+                    <formula>1</formula>
+                    <delay_flex/>
+                    <params/>
+                    <ipmi_sensor/>
+                    <data_type>0</data_type>
+                    <authtype>0</authtype>
+                    <username/>
+                    <password/>
+                    <publickey/>
+                    <privatekey/>
+                    <port/>
+                    <description/>
+                    <inventory_link>0</inventory_link>
+                    <applications>
+                        <application>
+                            <name>Graylog</name>
+                        </application>
+                    </applications>
+                    <valuemap>
+                        <name>Service state</name>
+                    </valuemap>
+                    <logtimefmt/>
+                </item>
                 <item>
                     <name>Buffer input utilization</name>
                     <type>10</type>
@@ -806,6 +851,16 @@
     </templates>
     <triggers>
         <trigger>
+            <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+            <name>API port is DOWN</name>
+            <url/>
+            <status>0</status>
+            <priority>4</priority>
+            <description/>
+            <type>0</type>
+            <dependencies/>
+        </trigger>
+        <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;buffer_input_utilization_percent&quot;].avg(300)}&gt;80</expression>
             <name>Buffer input utilization is over 80%</name>
             <url/>
@@ -813,7 +868,12 @@
             <priority>2</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;buffer_output_utilization_percent&quot;].avg(300)}&gt;80</expression>
@@ -823,7 +883,12 @@
             <priority>2</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;es_cluster_health&quot;].str(red)}=1</expression>
@@ -833,7 +898,12 @@
             <priority>4</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;es_cluster_health&quot;].str(yellow)}=1</expression>
@@ -843,7 +913,12 @@
             <priority>2</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;journal_events_append&quot;].avg(300)}&gt;1000</expression>
@@ -853,7 +928,12 @@
             <priority>3</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;journal_events_read&quot;].avg(300)}&gt;1000</expression>
@@ -863,7 +943,12 @@
             <priority>2</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;journal_uncommitted_entries&quot;].avg(300)}&gt;1000</expression>
@@ -873,7 +958,12 @@
             <priority>3</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;node_cluster&quot;].change(0)}&lt;0</expression>
@@ -883,7 +973,12 @@
             <priority>1</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;node_id&quot;].change(0)}&lt;0</expression>
@@ -893,7 +988,12 @@
             <priority>1</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;lb_status&quot;].str(ALIVE)}=0</expression>
@@ -903,7 +1003,12 @@
             <priority>2</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;node_is_master&quot;].change(0)}&lt;0</expression>
@@ -913,7 +1018,12 @@
             <priority>1</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;node_transport&quot;].change(0)}&lt;0</expression>
@@ -923,7 +1033,12 @@
             <priority>1</priority>
             <description/>
             <type>0</type>
-            <dependencies/>
+            <dependencies>
+                <dependency>
+                    <name>API port is DOWN</name>
+                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                </dependency>
+            </dependencies>
         </trigger>
     </triggers>
     <graphs>
