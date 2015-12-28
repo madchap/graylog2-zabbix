@@ -22,24 +22,25 @@ This doesn't require anything on the agent. It is an external script curl'ing to
 
 ## Usage
 ```
-check_graylog_node -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h]
+check_graylog_node -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h] [-d]
 
 Args:
     -H : Hostname or IP address of graylog server
     -a : Attribute to monitor. See list below.
     -p : Graylog API port (default: 12900)
+    -d : Debug message to log file (default: false)
     -h : Displays help
 
 List of attributes:
-    - node_id : returns graylog node_id
+    - node_id 
     - node_transport
     - node_is_master
     - node_cluster
     - node_type
     - node_throughput
     - lb_status
-    - total_message_count : return the node's message count
-    - es_cluster_health : return elasticsearch's cluster health
+    - total_message_count
+    - es_cluster_health
     - journal_size
     - journal_num_segments
     - journal_uncommitted_entries
@@ -49,5 +50,6 @@ List of attributes:
     - buffer_output_utilization
     - buffer_input_utilization_percent
     - buffer_output_utilization_percent
+    - poll_data
 ```
 

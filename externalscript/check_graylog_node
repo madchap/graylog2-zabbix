@@ -2,7 +2,7 @@
 # set -x
 
 # Debug override -- uncomment to write to $LOG, silent otherwise.
-DEBUG=1
+# DEBUG=1
 
 ## Defaults ##
 CREDS_FILE=$(dirname $BASH_SOURCE)/check_graylog_node_creds.txt
@@ -45,6 +45,7 @@ List of attributes:
     - buffer_output_utilization
     - buffer_input_utilization_percent
     - buffer_output_utilization_percent
+    - poll_data
 
 EOF
 }
@@ -87,12 +88,7 @@ get_json_info() {
 
 # Node related information -- /system/cluster/node
 NODE_INFO_FILE=/tmp/${HOSTNAME}-node.json
-get_node_info() {
-    # Function is called prior to the other related functions below and is only there to write to file.
-    # The other functions will read the data from the file to avoid to many API calls.
-    debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"
-    get_json_info "/system/cluster/node" $NODE_INFO_FILE
-}
+get_node_info() { get_json_info "/system/cluster/node" $NODE_INFO_FILE ; }
 get_node_id() { debug "[$FUNCNAME] Executing" ;jq -r '.node_id' $NODE_INFO_FILE ; }
 get_node_transport_addr() { debug "[$FUNCNAME] Executing" ; jq -r '.transport_address' $NODE_INFO_FILE ; }
 get_node_is_master() { debug "[$FUNCNAME] Executing" ; jq -r '.is_master' $NODE_INFO_FILE ; }
@@ -102,12 +98,7 @@ get_node_type() { debug "[$FUNCNAME] Executing" ; jq -r '.type' $NODE_INFO_FILE 
 
 # Journal related information -- /system/journal
 JOURNAL_INFO_FILE=/tmp/${HOSTNAME}-journal.json
-get_system_journal_info() { 
-    # Function is called prior to the other related functions below and is only there to write to file.
-    # The other functions will read the data from the file to avoid to many API calls.
-    debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"
-    get_json_info "/system/journal" $JOURNAL_INFO_FILE
-}
+get_system_journal_info() { get_json_info "/system/journal" $JOURNAL_INFO_FILE ; }
 get_system_journal_events_read() { debug "[$FUNCNAME] Executing" ; jq -r '.read_events_per_second' $JOURNAL_INFO_FILE ; }
 get_system_journal_events_append() { debug "[$FUNCNAME] Executing" ; jq -r '.append_events_per_second' $JOURNAL_INFO_FILE ; }
 get_system_journal_size() { debug "[$FUNCNAME] Executing" ; jq -r '.journal_size' $JOURNAL_INFO_FILE ; }
@@ -117,12 +108,7 @@ get_system_journal_uncommitted_entries() { debug "[$FUNCNAME] Executing" ; jq -r
 
 # Buffer related information -- /system/buffers
 BUFFER_INFO_FILE=/tmp/${HOSTNAME}-buffer.json
-get_system_buffer_info() {
-    # Function is called prior to the other related functions below and is only there to write to file.
-    # The other functions will read the data from the file to avoid to many API calls.
-    debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"
-    get_json_info "/system/buffers" $BUFFER_INFO_FILE
-}
+get_system_buffer_info() { get_json_info "/system/buffers" $BUFFER_INFO_FILE ; }
 get_system_buffer_input_utilization() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.input.utilization' $BUFFER_INFO_FILE ; }
 get_system_buffer_input_utilization_percent() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.input.utilization_percent' $BUFFER_INFO_FILE ; }
 get_system_buffer_output_utilization() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.output.utilization' $BUFFER_INFO_FILE ; }
