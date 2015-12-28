@@ -1,8 +1,8 @@
 #!/bin/bash
 # set -x
 
-# Debug override
-DEBUG=1
+# Debug override -- uncomment to write to $LOG, silent otherwise.
+# DEBUG=1
 
 ## Defaults ##
 CREDS_FILE=$(dirname $BASH_SOURCE)/check_graylog_node_creds.txt
@@ -104,6 +104,7 @@ _write_json_file() {
         endtime=`date +%s%3N`
         let runtime=${endtime}-${starttime}
         debug "[$PID] [$(basename $2)] \t\t--> $runtime ms"
+        [[ ! -s $2 ]] && debug "[$PID] [$(basename $2)] \t\t!! File is empty. API port may be down or there was a race condition"
         debug "[$PID] [$(basename $2)] \t\tUnlocking ${2}.lock"
         rm -f ${2}.lock
     elif [ `check_file_age $2.lock $LOCK_FRESHNESS` -ne 0 ]; then
@@ -112,8 +113,11 @@ _write_json_file() {
         unlink $2.lock
     else
         # If there is a lock file, let the other process finish. The next action will be to read from file.
-        debug "[$PID] [$(basename $2)] \t\tFile is locked. Waiting 1 second to allow other process to write."
-        sleep 1
+        RANDSECS=$(( (RANDOM % 10) + 1))
+        debug "[$PID] [$(basename $2)] \t\tFile is locked. Waiting $RANDSECS second to allow other process to write"
+        sleep $RANDSECS
+        debug "[$PID] [$(basename $2)] \t\tTrying to get json info again"
+        get_json_info $1 $2
     fi
 }
 
