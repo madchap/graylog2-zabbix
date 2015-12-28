@@ -13,7 +13,6 @@ APIPORT=12900
 # if several checks are made against a single API endpoint, then use the file for this amount of seconds since the last write.
 JSON_FRESHNESS=30
 LOCK_FRESHNESS=5
-PID=$$
 ## End defaults  ##
 
 usage() {
@@ -74,62 +73,16 @@ done
 # exit if less than 2 attributes are passed in
 [[ $OPTIND -lt 4 ]] && usage && exit 1
 
-check_file_age() {
-    # $1 filename $2 freshness value
-    # FIXME LINUX ONLY
-    if [ -e $1 ]; then
-        STATC=`stat -c %Y $1`
-        NOW=`date +%s`
-        let DIFF=$NOW-$STATC
-   
-        if [ "$DIFF" -gt "$2" ]; then
-            echo 1
-        else
-            echo 0
-        fi
-    fi
-}
-
 CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD} -s http://${HOSTNAME}:${APIPORT}"
-
-_write_json_file() {
-    # $1 = URI -- $2 filename
-    if [ ! -e ${2}.lock ]; then
-        # No lock exists, create one and get new json data
-        debug "[$PID] [$(basename $2)] \t\tLocking ${2}.lock"
-        touch ${2}.lock
-        debug "[$PID] [$(basename $2)] \t\tPulling json data"
-        starttime=`date +%s%3N`
-        ${CURL_BASE_CMD}${1} | jq '.' > $2
-        endtime=`date +%s%3N`
-        let runtime=${endtime}-${starttime}
-        debug "[$PID] [$(basename $2)] \t\t--> $runtime ms"
-        [[ ! -s $2 ]] && debug "[$PID] [$(basename $2)] \t\t!! File is empty. API port may be down or there was a race condition"
-        debug "[$PID] [$(basename $2)] \t\tUnlocking ${2}.lock"
-        rm -f ${2}.lock
-    elif [ `check_file_age $2.lock $LOCK_FRESHNESS` -ne 0 ]; then
-        # Under heavy load, process may just not finish and leave a stale .lock file.
-        debug "[$PID] [$(basename $2)] \t\tStale lock detected! Removing ${2}.lock"
-        unlink $2.lock
-    else
-        # If there is a lock file, let the other process finish. The next action will be to read from file.
-        RANDSECS=$(( (RANDOM % 10) + 1))
-        debug "[$PID] [$(basename $2)] \t\tFile is locked. Waiting $RANDSECS second to allow other process to write"
-        sleep $RANDSECS
-        debug "[$PID] [$(basename $2)] \t\tTrying to get json info again"
-        get_json_info $1 $2
-    fi
-}
 
 get_json_info() {
     # $1 = URI -- $2 filename
-    if [ ! -e $2 ] || [ ! -s $2 ] || [ `check_file_age $2 $JSON_FRESHNESS` -ne 0 ]; then
-        # if the json file doesn't exist, or is 0 byte or is too old, update.
-        debug "[$PID] [$(basename $2)] \tInfo file doesn't exist or too old. Updating."
-        _write_json_file $1 $2
-    else
-        debug "[$PID] [$(basename $2)] \tInfo fresh enough."
-    fi
+    debug "[$FUNCNAME] [$(basename $2)] Pulling json data"
+    starttime=`date +%s%3N`
+    ${CURL_BASE_CMD}${1} | jq '.' > $2
+    endtime=`date +%s%3N`
+    let runtime=${endtime}-${starttime}
+    debug "[$FUNCNAME] [$(basename $2)] --> $runtime ms"
 }
 
 # Node related information -- /system/cluster/node
@@ -137,14 +90,14 @@ NODE_INFO_FILE=/tmp/${HOSTNAME}-node.json
 get_node_info() {
     # Function is called prior to the other related functions below and is only there to write to file.
     # The other functions will read the data from the file to avoid to many API calls.
-    debug "[$PID] [$(basename $NODE_INFO_FILE)] Getting node info"
+    debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"
     get_json_info "/system/cluster/node" $NODE_INFO_FILE
 }
-get_node_id() { jq -r '.node_id' $NODE_INFO_FILE ; }
-get_node_transport_addr() { jq -r '.transport_address' $NODE_INFO_FILE ; }
-get_node_is_master() { jq -r '.is_master' $NODE_INFO_FILE ; }
-get_node_cluster() { jq -r '.cluster_id' $NODE_INFO_FILE ; }
-get_node_type() { jq -r '.type' $NODE_INFO_FILE ; }
+get_node_id() { debug "[$FUNCNAME] Executing" ;jq -r '.node_id' $NODE_INFO_FILE ; }
+get_node_transport_addr() { debug "[$FUNCNAME] Executing" ; jq -r '.transport_address' $NODE_INFO_FILE ; }
+get_node_is_master() { debug "[$FUNCNAME] Executing" ; jq -r '.is_master' $NODE_INFO_FILE ; }
+get_node_cluster() { debug "[$FUNCNAME] Executing" ; jq -r '.cluster_id' $NODE_INFO_FILE ; }
+get_node_type() { debug "[$FUNCNAME] Executing" ; jq -r '.type' $NODE_INFO_FILE ; }
 
 
 # Journal related information -- /system/journal
@@ -152,14 +105,14 @@ JOURNAL_INFO_FILE=/tmp/${HOSTNAME}-journal.json
 get_system_journal_info() { 
     # Function is called prior to the other related functions below and is only there to write to file.
     # The other functions will read the data from the file to avoid to many API calls.
-    debug "[$PID] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"
+    debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"
     get_json_info "/system/journal" $JOURNAL_INFO_FILE
 }
-get_system_journal_events_read() { jq -r '.read_events_per_second' $JOURNAL_INFO_FILE ; }
-get_system_journal_events_append() { jq -r '.append_events_per_second' $JOURNAL_INFO_FILE ; }
-get_system_journal_size() { jq -r '.journal_size' $JOURNAL_INFO_FILE ; }
-get_system_journal_num_segments() { jq -r '.number_of_segments' $JOURNAL_INFO_FILE ; }
-get_system_journal_uncommitted_entries() { jq -r '.uncommitted_journal_entries' $JOURNAL_INFO_FILE ; }
+get_system_journal_events_read() { debug "[$FUNCNAME] Executing" ; jq -r '.read_events_per_second' $JOURNAL_INFO_FILE ; }
+get_system_journal_events_append() { debug "[$FUNCNAME] Executing" ; jq -r '.append_events_per_second' $JOURNAL_INFO_FILE ; }
+get_system_journal_size() { debug "[$FUNCNAME] Executing" ; jq -r '.journal_size' $JOURNAL_INFO_FILE ; }
+get_system_journal_num_segments() { debug "[$FUNCNAME] Executing" ; jq -r '.number_of_segments' $JOURNAL_INFO_FILE ; }
+get_system_journal_uncommitted_entries() { debug "[$FUNCNAME] Executing" ; jq -r '.uncommitted_journal_entries' $JOURNAL_INFO_FILE ; }
 
 
 # Buffer related information -- /system/buffers
@@ -167,50 +120,60 @@ BUFFER_INFO_FILE=/tmp/${HOSTNAME}-buffer.json
 get_system_buffer_info() {
     # Function is called prior to the other related functions below and is only there to write to file.
     # The other functions will read the data from the file to avoid to many API calls.
-    debug "[$PID] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"
+    debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"
     get_json_info "/system/buffers" $BUFFER_INFO_FILE
 }
-get_system_buffer_input_utilization() { jq -r '.buffers.input.utilization' $BUFFER_INFO_FILE ; }
-get_system_buffer_input_utilization_percent() { jq -r '.buffers.input.utilization_percent' $BUFFER_INFO_FILE ; }
-get_system_buffer_output_utilization() { jq -r '.buffers.output.utilization' $BUFFER_INFO_FILE ; }
-get_system_buffer_output_utilization_percent() { jq -r '.buffers.output.utilization_percent' $BUFFER_INFO_FILE ; }
+get_system_buffer_input_utilization() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.input.utilization' $BUFFER_INFO_FILE ; }
+get_system_buffer_input_utilization_percent() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.input.utilization_percent' $BUFFER_INFO_FILE ; }
+get_system_buffer_output_utilization() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.output.utilization' $BUFFER_INFO_FILE ; }
+get_system_buffer_output_utilization_percent() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.output.utilization_percent' $BUFFER_INFO_FILE ; }
 
 
 # Various ungrouped checks
-get_lb_status() { ${CURL_BASE_CMD}/system/lbstatus ;  }
-get_total_message_count() { ${CURL_BASE_CMD}/count/total | jq -r .events ; }
-get_es_cluster_status() { ${CURL_BASE_CMD}/system/indexer/cluster/health | jq -r .status ; }
-get_node_throughput() { ${CURL_BASE_CMD}/system/throughput | jq -r .throughput ; }
+get_lb_status() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/lbstatus ;  }
+get_total_message_count() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/count/total | jq -r .events ; }
+get_es_cluster_status() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/indexer/cluster/health | jq -r .status ; }
+get_node_throughput() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/throughput | jq -r .throughput ; }
 
-debug() { 
-    if [ ! -z $DEBUG ]; then
-        echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') $@" >> $LOG
+poll_data() {
+    debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"; get_node_info
+    debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"; get_system_journal_info
+    debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"; get_system_buffer_info
+
+    if [ -s $NODE_INFO_FILE ] && [ -s $JOURNAL_INFO_FILE ] && [ -s $BUFFER_INFO_FILE ]; then
+        echo "OK"
+    else
+        echo "FAIL"
     fi
 }
 
-debug "[$PID] [General info] Starting $0"
+debug() { 
+    if [ ! -z $DEBUG ]; then
+        # PPID should be the zabbix poller process and $$ the shell process
+        echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') {$PPID} [$$] $@" >> $LOG
+    fi
+}
 
 case $ATTR in
-    node_id)                                get_node_info; get_node_id                                                     ;;
-    node_transport)                         get_node_info; get_node_transport_addr                                         ;;
-    node_is_master)                         get_node_info; get_node_is_master                                              ;;
-    node_cluster)                           get_node_info; get_node_cluster                                                ;;
-    node_type)                              get_node_info; get_node_type                                                   ;;
-    journal_events_read)                    get_system_journal_info; get_system_journal_events_read                        ;;
-    journal_events_append)                  get_system_journal_info; get_system_journal_events_append                      ;; 
-    journal_size)                           get_system_journal_info; get_system_journal_size                               ;; 
-    journal_num_segments)                   get_system_journal_info; get_system_journal_num_segments                       ;; 
-    journal_uncommitted_entries)            get_system_journal_info; get_system_journal_uncommitted_entries                ;;
-    buffer_input_utilization)               get_system_buffer_info; get_system_buffer_input_utilization                    ;;
-    buffer_input_utilization_percent)       get_system_buffer_info; get_system_buffer_input_utilization_percent            ;;
-    buffer_output_utilization)              get_system_buffer_info; get_system_buffer_output_utilization                   ;;
-    buffer_output_utilization_percent)      get_system_buffer_info; get_system_buffer_output_utilization_percent           ;;
-    lb_status)                              get_lb_status                                                                  ;;
-    total_message_count)                    get_total_message_count                                                        ;;
-    es_cluster_health)                      get_es_cluster_status                                                          ;;
-    node_throughput)                        get_node_throughput                                                            ;;
+    node_id)                                get_node_id                                           ;;
+    node_transport)                         get_node_transport_addr                               ;;
+    node_is_master)                         get_node_is_master                                    ;;
+    node_cluster)                           get_node_cluster                                      ;;
+    node_type)                              get_node_type                                         ;;
+    journal_events_read)                    get_system_journal_events_read                        ;;
+    journal_events_append)                  get_system_journal_events_append                      ;; 
+    journal_size)                           get_system_journal_size                               ;; 
+    journal_num_segments)                   get_system_journal_num_segments                       ;; 
+    journal_uncommitted_entries)            get_system_journal_uncommitted_entries                ;;
+    buffer_input_utilization)               get_system_buffer_input_utilization                   ;;
+    buffer_input_utilization_percent)       get_system_buffer_input_utilization_percent           ;;
+    buffer_output_utilization)              get_system_buffer_output_utilization                  ;;
+    buffer_output_utilization_percent)      get_system_buffer_output_utilization_percent          ;;
+    lb_status)                              get_lb_status                                         ;;
+    total_message_count)                    get_total_message_count                               ;;
+    es_cluster_health)                      get_es_cluster_status                                 ;;
+    node_throughput)                        get_node_throughput                                   ;;
+    poll_data)                              poll_data                                             ;;
     
-    *)  echo "Unknown attribute to monitor."                                                                               ;;
+    *)  debug "[Attribute error] Unknown attribute to monitor." && echo "Unknown attribute to monitor"                        ;;
 esac
-
-debug "[$PID] [General info] Ending $0"
