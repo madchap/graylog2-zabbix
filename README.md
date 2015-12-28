@@ -32,15 +32,15 @@ Args:
     -h : Displays help
 
 List of attributes:
-    - node_id 
+    - node_id : returns graylog node_id
     - node_transport
     - node_is_master
     - node_cluster
     - node_type
     - node_throughput
     - lb_status
-    - total_message_count
-    - es_cluster_health
+    - total_message_count : return the node's message count
+    - es_cluster_health : return elasticsearch's cluster health
     - journal_size
     - journal_num_segments
     - journal_uncommitted_entries
@@ -51,5 +51,20 @@ List of attributes:
     - buffer_input_utilization_percent
     - buffer_output_utilization_percent
     - poll_data
+    - current_deflector (not yet supported, because not accessible via regular user)
+    - system_lifecycle
+    - system_isprocessing
+    - system_tz
+    - system_version
+    - system_startedat
+    - cluster_stream_count
+    - cluster_stream_rule_count
+    - cluster_user_count
+    - cluster_output_count
+    - cluster_dashboard_count
+    - cluster_input_count
+    - cluster_global_input_count
+    - cluster_extractor_count
+    - cluster_contentpack_count
+    - cluster_alerts_count
 ```
-

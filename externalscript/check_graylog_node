@@ -8,11 +8,7 @@
 CREDS_FILE=$(dirname $BASH_SOURCE)/check_graylog_node_creds.txt
 source $CREDS_FILE
 LOG=/tmp/$(basename $0).log
-# Default graylog API port
 APIPORT=12900
-# if several checks are made against a single API endpoint, then use the file for this amount of seconds since the last write.
-JSON_FRESHNESS=30
-LOCK_FRESHNESS=5
 ## End defaults  ##
 
 usage() {
@@ -46,7 +42,22 @@ List of attributes:
     - buffer_input_utilization_percent
     - buffer_output_utilization_percent
     - poll_data
-
+    - current_deflector (not yet supported, because not accessible via regular user)
+    - system_lifecycle                       
+    - system_isprocessing
+    - system_tz
+    - system_version
+    - system_startedat
+    - cluster_stream_count
+    - cluster_stream_rule_count
+    - cluster_user_count
+    - cluster_output_count
+    - cluster_dashboard_count
+    - cluster_input_count
+    - cluster_global_input_count
+    - cluster_extractor_count
+    - cluster_contentpack_count              
+    - cluster_alerts_count
 EOF
 }
 
@@ -114,17 +125,42 @@ get_system_buffer_input_utilization_percent() { debug "[$FUNCNAME] Executing" ; 
 get_system_buffer_output_utilization() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.output.utilization' $BUFFER_INFO_FILE ; }
 get_system_buffer_output_utilization_percent() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.output.utilization_percent' $BUFFER_INFO_FILE ; }
 
+# System overview
+SYSTEM_INFO_FILE=/tmp/${HOSTNAME}-system.json
+get_system_system_info() { get_json_info "/system" $SYSTEM_INFO_FILE ; }
+get_system_lb_status() { debug "[$FUNCNAME] Executing" ; jq -r '.lb_status' $SYSTEM_INFO_FILE ;  }
+get_system_lifecycle() { debug "[$FUNCNAME] Executing" ; jq -r '.lifecycle' $SYSTEM_INFO_FILE ;  }
+get_system_isprocessing() { debug "[$FUNCNAME] Executing" ; jq -r '.is_processing' $SYSTEM_INFO_FILE ;  }
+get_system_tz() { debug "[$FUNCNAME] Executing" ; jq -r '.timezone' $SYSTEM_INFO_FILE ;  }
+get_system_version() { debug "[$FUNCNAME] Executing" ; jq -r '.version' $SYSTEM_INFO_FILE ;  }
+get_system_startedat() { debug "[$FUNCNAME] Executing" ; jq -r '.started_at' $SYSTEM_INFO_FILE ;  }
+
+# Cluster overview
+CLUSTER_INFO_FILE=/tmp/${HOSTNAME}-cluster.json
+get_cluster_info() { get_json_info "/system/cluster/stats" $CLUSTER_INFO_FILE ; }
+get_cluster_stream_count() { debug "[$FUNCNAME] Executing" ; jq -r '.stream_count' $CLUSTER_INFO_FILE ; }
+get_cluster_stream_rules_count() { debug "[$FUNCNAME] Executing" ; jq -r '.stream_rule_count' $CLUSTER_INFO_FILE ; }
+get_cluster_user_count() { debug "[$FUNCNAME] Executing" ; jq -r '.user_count' $CLUSTER_INFO_FILE ; }
+get_cluster_output_count() { debug "[$FUNCNAME] Executing" ; jq -r '.output_count' $CLUSTER_INFO_FILE ; }
+get_cluster_dashboard_count() { debug "[$FUNCNAME] Executing" ; jq -r '.dashboard_count' $CLUSTER_INFO_FILE ; }
+get_cluster_input_count() { debug "[$FUNCNAME] Executing" ; jq -r '.input_count' $CLUSTER_INFO_FILE ; }
+get_cluster_global_input_count() { debug "[$FUNCNAME] Executing" ; jq -r '.global_input_count' $CLUSTER_INFO_FILE ; }
+get_cluster_extractor_count() { debug "[$FUNCNAME] Executing" ; jq -r '.extractor_count' $CLUSTER_INFO_FILE ; }
+get_cluster_contentpack_count() { debug "[$FUNCNAME] Executing" ; jq -r '.content_pack_count' $CLUSTER_INFO_FILE ; }
+get_cluster_alerts_count() { debug "[$FUNCNAME] Executing" ; jq -r '.alarm_stats.alert_count' $CLUSTER_INFO_FILE ; }
+get_cluster_es_state() { debug "[$FUNCNAME] Executing" ; jq -r '.elasticsearch.status' $CLUSTER_INFO_FILE ; }
 
 # Various ungrouped checks
-get_lb_status() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/lbstatus ;  }
 get_total_message_count() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/count/total | jq -r .events ; }
-get_es_cluster_status() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/indexer/cluster/health | jq -r .status ; }
 get_node_throughput() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/throughput | jq -r .throughput ; }
+get_current_deflector() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/deflector | jq -r .current_target ; }
 
 poll_data() {
     debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"; get_node_info &
     debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"; get_system_journal_info &
     debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"; get_system_buffer_info &
+    debug "[$FUNCNAME] [$(basename $SYSTEM_INFO_FILE)] Getting system info"; get_system_system_info &
+    debug "[$FUNCNAME] [$(basename $CLUSTER_INFO_FILE)] Getting system info"; get_cluster_info &
 
     wait
 
@@ -157,11 +193,27 @@ case $ATTR in
     buffer_input_utilization_percent)       get_system_buffer_input_utilization_percent           ;;
     buffer_output_utilization)              get_system_buffer_output_utilization                  ;;
     buffer_output_utilization_percent)      get_system_buffer_output_utilization_percent          ;;
-    lb_status)                              get_lb_status                                         ;;
+    lb_status)                              get_system_lb_status                                  ;;
     total_message_count)                    get_total_message_count                               ;;
-    es_cluster_health)                      get_es_cluster_status                                 ;;
+    es_cluster_health)                      get_cluster_es_state                                  ;;
     node_throughput)                        get_node_throughput                                   ;;
     poll_data)                              poll_data                                             ;;
+    current_deflector)                      get_current_deflector                                 ;;
+    system_lifecycle)                       get_system_lifecycle                                  ;;
+    system_isprocessing)                    get_system_isprocessing                               ;;
+    system_tz)                              get_system_tz                                         ;;
+    system_version)                         get_system_version                                    ;;
+    system_startedat)                       get_system_startedat                                  ;;
+    cluster_stream_count)                   get_cluster_stream_count                              ;;
+    cluster_stream_rule_count)              get_cluster_stream_rules_count                        ;;
+    cluster_user_count)                     get_cluster_user_count                                ;;
+    cluster_output_count)                   get_cluster_output_count                              ;;
+    cluster_dashboard_count)                get_cluster_dashboard_count                           ;;
+    cluster_input_count)                    get_cluster_input_count                               ;;
+    cluster_global_input_count)             get_cluster_global_input_count                        ;;
+    cluster_extractor_count)                get_cluster_extractor_count                           ;;
+    cluster_contentpack_count)              get_cluster_contentpack_count                         ;;
+    cluster_alerts_count)                   get_cluster_alerts_count                              ;;
     
     *)  debug "[Attribute error] Unknown attribute to monitor." && echo "Unknown attribute to monitor"                        ;;
 esac
