@@ -39,8 +39,8 @@ List of attributes:
     - node_type
     - node_throughput
     - lb_status
-    - total_message_count : return the node's message count
-    - es_cluster_health : return elasticsearch's cluster health
+    - total_message_count
+    - es_cluster_health
     - journal_size
     - journal_num_segments
     - journal_uncommitted_entries
