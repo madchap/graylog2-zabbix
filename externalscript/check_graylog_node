@@ -2,7 +2,7 @@
 # set -x
 
 # Debug override -- uncomment to write to $LOG, silent otherwise.
-# DEBUG=1
+DEBUG=1
 
 ## Defaults ##
 CREDS_FILE=$(dirname $BASH_SOURCE)/check_graylog_node_creds.txt
@@ -136,9 +136,11 @@ get_es_cluster_status() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/syste
 get_node_throughput() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/throughput | jq -r .throughput ; }
 
 poll_data() {
-    debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"; get_node_info
-    debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"; get_system_journal_info
-    debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"; get_system_buffer_info
+    debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"; get_node_info &
+    debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"; get_system_journal_info &
+    debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"; get_system_buffer_info &
+
+    wait
 
     if [ -s $NODE_INFO_FILE ] && [ -s $JOURNAL_INFO_FILE ] && [ -s $BUFFER_INFO_FILE ]; then
         echo "OK"
