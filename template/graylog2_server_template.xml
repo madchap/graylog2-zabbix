@@ -1555,13 +1555,13 @@
             <status>1</status>
             <priority>2</priority>
             <description/>
-            <type>0</type>
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
+        <type>0</type>
         </trigger>
         <trigger>
             <expression>{Template graylog2 server:check_graylog_node[&quot;-H&quot;,{HOST.CONN},&quot;-a&quot;,&quot;buffer_output_utilization_percent&quot;].avg(300)}&gt;80</expression>
@@ -1574,7 +1574,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1589,7 +1589,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1604,7 +1604,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1619,7 +1619,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1634,7 +1634,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1649,7 +1649,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1664,7 +1664,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1679,7 +1679,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1694,7 +1694,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1709,7 +1709,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1724,7 +1724,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1739,7 +1739,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1754,7 +1754,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
@@ -1769,7 +1769,7 @@
             <dependencies>
                 <dependency>
                     <name>API port is DOWN</name>
-                    <expression>{graylog:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
+                    <expression>{Template graylog2 server:net.tcp.service[http,{HOST.CONN},12900].last()}=0</expression>
                 </dependency>
             </dependencies>
         </trigger>
