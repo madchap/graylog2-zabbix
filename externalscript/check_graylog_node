@@ -122,9 +122,9 @@ get_json_info() {
 		HEADERS_DEBUG=$LOG
 	fi
 	exec 4> >(tee -a $HEADERS_DEBUG >/dev/null)
-	set -x
+	#set -x
     ${CURL_BASE_CMD}${1} | jq '.' > $2
-	set +x
+	#set +x
     endtime=`date +%s%3N`
     let runtime=${endtime}-${starttime}
     debug "[$FUNCNAME] [$(basename $2)] --> $runtime ms"
