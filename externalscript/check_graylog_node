@@ -1,15 +1,16 @@
 #!/bin/bash
-# set -x
 
 # Debug override -- uncomment to write to $LOG, silent otherwise.
-# DEBUG=1
+DEBUG=0
 
 ## Defaults ##
 CREDS_FILE=$(dirname $BASH_SOURCE)/check_graylog_node_creds.txt
 source $CREDS_FILE
-LOG=/tmp/$(basename $0).log
+WORKDIR=/tmp
+LOG=${WORKDIR}/$(basename $0 .sh).log
 APIPORT=12900
 ## End defaults  ##
+
 
 usage() {
     cat <<EOF
@@ -81,139 +82,189 @@ while getopts hH:a:p::l:d opts; do
             ;;
     esac
 done
+if [ "$DEBUG" == 1 ]; then
+	exec > >(tee -a $LOG)
+	exec 2>&1
+	#set -x
+fi
 
 # exit if less than 2 attributes are passed in
 [[ $OPTIND -lt 4 ]] && usage && exit 1
 
-CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD} -s http://${HOSTNAME}:${APIPORT}"
+##### BEGIN FLOCK CONVENIENCE FUNCTION DEFINITIONS ##### 
+### HEADER ###
+LOCKFILE="${WORKDIR}/$(basename $0 .sh)-${HOSTNAME}.lock"
+LOCKFD=99
+ 
+# PRIVATE
+_lock()             { flock -$1 $LOCKFD; }
+_no_more_locking()  { _lock u; _lock xn && rm -f $LOCKFILE; }
+_prepare_locking()  { eval "exec $LOCKFD>\"$LOCKFILE\""; trap _no_more_locking EXIT; }
+ 
+# ON START
+_prepare_locking
+ 
+# PUBLIC
+exlock_now()        { _lock xn; }  # obtain an exclusive lock immediately or fail
+exlock()            { _lock x; }   # obtain an exclusive lock
+shlock()            { _lock s; }   # obtain a shared lock
+unlock()            { _lock u; }   # drop a lock
+##### END FLOCK CONVENIENCE FUNCTION DEFINITIONS ##### 
+
+CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD}  -D /dev/fd/4 -sS http://${HOSTNAME}:${APIPORT}"
 
 get_json_info() {
     # $1 = URI -- $2 filename
     debug "[$FUNCNAME] [$(basename $2)] Pulling json data"
     starttime=`date +%s%3N`
+	HEADERS_DEBUG=/dev/null
+    if [ "$DEBUG" == 1 ]; then
+		HEADERS_DEBUG=$LOG
+	fi
+	exec 4> >(tee -a $HEADERS_DEBUG >/dev/null)
+	set -x
     ${CURL_BASE_CMD}${1} | jq '.' > $2
+	set +x
     endtime=`date +%s%3N`
     let runtime=${endtime}-${starttime}
     debug "[$FUNCNAME] [$(basename $2)] --> $runtime ms"
 }
 
 # Node related information -- /system/cluster/node
-NODE_INFO_FILE=/tmp/${HOSTNAME}-node.json
-get_node_info() { get_json_info "/system/cluster/node" $NODE_INFO_FILE ; }
-get_node_id() { debug "[$FUNCNAME] Executing" ;jq -r '.node_id' $NODE_INFO_FILE ; }
-get_node_transport_addr() { debug "[$FUNCNAME] Executing" ; jq -r '.transport_address' $NODE_INFO_FILE ; }
-get_node_is_master() { debug "[$FUNCNAME] Executing" ; jq -r '.is_master' $NODE_INFO_FILE ; }
-get_node_cluster() { debug "[$FUNCNAME] Executing" ; jq -r '.cluster_id' $NODE_INFO_FILE ; }
-get_node_type() { debug "[$FUNCNAME] Executing" ; jq -r '.type' $NODE_INFO_FILE ; }
+NODE_INFO_FILE=${WORKDIR}/${HOSTNAME}-node.json
+get_node_info()           {                           get_json_info "/system/cluster/node" $NODE_INFO_FILE; }
+get_node_id()             { debug "[$FUNCNAME] Executing"; jq -e -r '.node_id'             $NODE_INFO_FILE; }
+get_node_transport_addr() { debug "[$FUNCNAME] Executing"; jq -e -r '.transport_address'   $NODE_INFO_FILE; }
+get_node_is_master()      { debug "[$FUNCNAME] Executing"; jq -e -r '.is_master'           $NODE_INFO_FILE; }
+get_node_cluster()        { debug "[$FUNCNAME] Executing"; jq -e -r '.cluster_id'          $NODE_INFO_FILE; }
+get_node_type()           { debug "[$FUNCNAME] Executing"; jq -e -r '.type'                $NODE_INFO_FILE; }
 
 
 # Journal related information -- /system/journal
-JOURNAL_INFO_FILE=/tmp/${HOSTNAME}-journal.json
-get_system_journal_info() { get_json_info "/system/journal" $JOURNAL_INFO_FILE ; }
-get_system_journal_events_read() { debug "[$FUNCNAME] Executing" ; jq -r '.read_events_per_second' $JOURNAL_INFO_FILE ; }
-get_system_journal_events_append() { debug "[$FUNCNAME] Executing" ; jq -r '.append_events_per_second' $JOURNAL_INFO_FILE ; }
-get_system_journal_size() { debug "[$FUNCNAME] Executing" ; jq -r '.journal_size' $JOURNAL_INFO_FILE ; }
-get_system_journal_num_segments() { debug "[$FUNCNAME] Executing" ; jq -r '.number_of_segments' $JOURNAL_INFO_FILE ; }
-get_system_journal_uncommitted_entries() { debug "[$FUNCNAME] Executing" ; jq -r '.uncommitted_journal_entries' $JOURNAL_INFO_FILE ; }
+JOURNAL_INFO_FILE=${WORKDIR}/${HOSTNAME}-journal.json
+get_system_journal_info()                {                           get_json_info "/system/journal"              $JOURNAL_INFO_FILE; }
+get_system_journal_events_read()         { debug "[$FUNCNAME] Executing"; jq -e -r '.read_events_per_second'      $JOURNAL_INFO_FILE; }
+get_system_journal_events_append()       { debug "[$FUNCNAME] Executing"; jq -e -r '.append_events_per_second'    $JOURNAL_INFO_FILE; }
+get_system_journal_size()                { debug "[$FUNCNAME] Executing"; jq -e -r '.journal_size'                $JOURNAL_INFO_FILE; }
+get_system_journal_num_segments()        { debug "[$FUNCNAME] Executing"; jq -e -r '.number_of_segments'          $JOURNAL_INFO_FILE; }
+get_system_journal_uncommitted_entries() { debug "[$FUNCNAME] Executing"; jq -e -r '.uncommitted_journal_entries' $JOURNAL_INFO_FILE; }
 
 
 # Buffer related information -- /system/buffers
-BUFFER_INFO_FILE=/tmp/${HOSTNAME}-buffer.json
-get_system_buffer_info() { get_json_info "/system/buffers" $BUFFER_INFO_FILE ; }
-get_system_buffer_input_utilization() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.input.utilization' $BUFFER_INFO_FILE ; }
-get_system_buffer_input_utilization_percent() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.input.utilization_percent' $BUFFER_INFO_FILE ; }
-get_system_buffer_output_utilization() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.output.utilization' $BUFFER_INFO_FILE ; }
-get_system_buffer_output_utilization_percent() { debug "[$FUNCNAME] Executing" ; jq -r '.buffers.output.utilization_percent' $BUFFER_INFO_FILE ; }
+BUFFER_INFO_FILE=${WORKDIR}/${HOSTNAME}-buffer.json
+get_system_buffer_info()                       {                           get_json_info "/system/buffers"                     $BUFFER_INFO_FILE; }
+get_system_buffer_input_utilization()          { debug "[$FUNCNAME] Executing"; jq -e -r '.buffers.input.utilization'          $BUFFER_INFO_FILE; }
+get_system_buffer_input_utilization_percent()  { debug "[$FUNCNAME] Executing"; jq -e -r '.buffers.input.utilization_percent'  $BUFFER_INFO_FILE; }
+get_system_buffer_output_utilization()         { debug "[$FUNCNAME] Executing"; jq -e -r '.buffers.output.utilization'         $BUFFER_INFO_FILE; }
+get_system_buffer_output_utilization_percent() { debug "[$FUNCNAME] Executing"; jq -e -r '.buffers.output.utilization_percent' $BUFFER_INFO_FILE; }
 
 # System overview
-SYSTEM_INFO_FILE=/tmp/${HOSTNAME}-system.json
-get_system_system_info() { get_json_info "/system" $SYSTEM_INFO_FILE ; }
-get_system_lb_status() { debug "[$FUNCNAME] Executing" ; jq -r '.lb_status' $SYSTEM_INFO_FILE ;  }
-get_system_lifecycle() { debug "[$FUNCNAME] Executing" ; jq -r '.lifecycle' $SYSTEM_INFO_FILE ;  }
-get_system_isprocessing() { debug "[$FUNCNAME] Executing" ; jq -r '.is_processing' $SYSTEM_INFO_FILE ;  }
-get_system_tz() { debug "[$FUNCNAME] Executing" ; jq -r '.timezone' $SYSTEM_INFO_FILE ;  }
-get_system_version() { debug "[$FUNCNAME] Executing" ; jq -r '.version' $SYSTEM_INFO_FILE ;  }
-get_system_startedat() { debug "[$FUNCNAME] Executing" ; jq -r '.started_at' $SYSTEM_INFO_FILE ;  }
+SYSTEM_INFO_FILE=${WORKDIR}/${HOSTNAME}-system.json
+get_system_system_info()  {                           get_json_info "/system"        $SYSTEM_INFO_FILE; }
+get_system_lb_status()    { debug "[$FUNCNAME] Executing"; jq -e -r '.lb_status'     $SYSTEM_INFO_FILE; }
+get_system_lifecycle()    { debug "[$FUNCNAME] Executing"; jq -e -r '.lifecycle'     $SYSTEM_INFO_FILE; }
+get_system_isprocessing() { debug "[$FUNCNAME] Executing"; jq -e -r '.is_processing' $SYSTEM_INFO_FILE; }
+get_system_tz()           { debug "[$FUNCNAME] Executing"; jq -e -r '.timezone'      $SYSTEM_INFO_FILE; }
+get_system_version()      { debug "[$FUNCNAME] Executing"; jq -e -r '.version'       $SYSTEM_INFO_FILE; }
+get_system_startedat()    { debug "[$FUNCNAME] Executing"; jq -e -r '.started_at'    $SYSTEM_INFO_FILE; }
 
 # Cluster overview
-CLUSTER_INFO_FILE=/tmp/${HOSTNAME}-cluster.json
-get_cluster_info() { get_json_info "/system/cluster/stats" $CLUSTER_INFO_FILE ; }
-get_cluster_stream_count() { debug "[$FUNCNAME] Executing" ; jq -r '.stream_count' $CLUSTER_INFO_FILE ; }
-get_cluster_stream_rules_count() { debug "[$FUNCNAME] Executing" ; jq -r '.stream_rule_count' $CLUSTER_INFO_FILE ; }
-get_cluster_user_count() { debug "[$FUNCNAME] Executing" ; jq -r '.user_count' $CLUSTER_INFO_FILE ; }
-get_cluster_output_count() { debug "[$FUNCNAME] Executing" ; jq -r '.output_count' $CLUSTER_INFO_FILE ; }
-get_cluster_dashboard_count() { debug "[$FUNCNAME] Executing" ; jq -r '.dashboard_count' $CLUSTER_INFO_FILE ; }
-get_cluster_input_count() { debug "[$FUNCNAME] Executing" ; jq -r '.input_count' $CLUSTER_INFO_FILE ; }
-get_cluster_global_input_count() { debug "[$FUNCNAME] Executing" ; jq -r '.global_input_count' $CLUSTER_INFO_FILE ; }
-get_cluster_extractor_count() { debug "[$FUNCNAME] Executing" ; jq -r '.extractor_count' $CLUSTER_INFO_FILE ; }
-get_cluster_contentpack_count() { debug "[$FUNCNAME] Executing" ; jq -r '.content_pack_count' $CLUSTER_INFO_FILE ; }
-get_cluster_alerts_count() { debug "[$FUNCNAME] Executing" ; jq -r '.alarm_stats.alert_count' $CLUSTER_INFO_FILE ; }
-get_cluster_es_state() { debug "[$FUNCNAME] Executing" ; jq -r '.elasticsearch.status' $CLUSTER_INFO_FILE ; }
+CLUSTER_INFO_FILE=${WORKDIR}/${HOSTNAME}-cluster.json
+get_cluster_info()               {                           get_json_info "/system/cluster/stats"    $CLUSTER_INFO_FILE; }
+get_cluster_stream_count()       { debug "[$FUNCNAME] Executing"; jq -e -r '.stream_count'            $CLUSTER_INFO_FILE; }
+get_cluster_stream_rules_count() { debug "[$FUNCNAME] Executing"; jq -e -r '.stream_rule_count'       $CLUSTER_INFO_FILE; }
+get_cluster_user_count()         { debug "[$FUNCNAME] Executing"; jq -e -r '.user_count'              $CLUSTER_INFO_FILE; }
+get_cluster_output_count()       { debug "[$FUNCNAME] Executing"; jq -e -r '.output_count'            $CLUSTER_INFO_FILE; }
+get_cluster_dashboard_count()    { debug "[$FUNCNAME] Executing"; jq -e -r '.dashboard_count'         $CLUSTER_INFO_FILE; }
+get_cluster_input_count()        { debug "[$FUNCNAME] Executing"; jq -e -r '.input_count'             $CLUSTER_INFO_FILE; }
+get_cluster_global_input_count() { debug "[$FUNCNAME] Executing"; jq -e -r '.global_input_count'      $CLUSTER_INFO_FILE; }
+get_cluster_extractor_count()    { debug "[$FUNCNAME] Executing"; jq -e -r '.extractor_count'         $CLUSTER_INFO_FILE; }
+get_cluster_contentpack_count()  { debug "[$FUNCNAME] Executing"; jq -e -r '.content_pack_count'      $CLUSTER_INFO_FILE; }
+get_cluster_alerts_count()       { debug "[$FUNCNAME] Executing"; jq -e -r '.alarm_stats.alert_count' $CLUSTER_INFO_FILE; }
+get_cluster_es_state()           { debug "[$FUNCNAME] Executing"; jq -e -r '.elasticsearch.status'    $CLUSTER_INFO_FILE; }
 
 # Various ungrouped checks
-get_total_message_count() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/count/total | jq -r .events ; }
-get_node_throughput() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/throughput | jq -r .throughput ; }
-get_current_deflector() { debug "[$FUNCNAME] Executing" ; ${CURL_BASE_CMD}/system/deflector | jq -r .current_target ; }
+get_total_message_count() { debug "[$FUNCNAME] Executing"; ${CURL_BASE_CMD}/count/total       | jq -e -r .events         ; }
+get_node_throughput()     { debug "[$FUNCNAME] Executing"; ${CURL_BASE_CMD}/system/throughput | jq -e -r .throughput     ; }
+get_current_deflector()   { debug "[$FUNCNAME] Executing"; ${CURL_BASE_CMD}/system/deflector  | jq -e -r .current_target ; }
 
 poll_data() {
+
     debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"; get_node_info &
     debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"; get_system_journal_info &
     debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"; get_system_buffer_info &
     debug "[$FUNCNAME] [$(basename $SYSTEM_INFO_FILE)] Getting system info"; get_system_system_info &
-    debug "[$FUNCNAME] [$(basename $CLUSTER_INFO_FILE)] Getting system info"; get_cluster_info &
+    debug "[$FUNCNAME] [$(basename $CLUSTER_INFO_FILE)] Getting cluster info"; get_cluster_info &
 
     wait
 
     if [ -s $NODE_INFO_FILE ] && [ -s $JOURNAL_INFO_FILE ] && [ -s $BUFFER_INFO_FILE ]; then
-        echo "OK"
+        debug "[$FUNCNAME] OK. No .json file empty"
+
+	`cat $JOURNAL_INFO_FILE |jq -e '.' >/dev/null`
+	debug "[$FUNCNAME] Valid JOURNAL JSON? $?"
+	`cat $NODE_INFO_FILE |jq -e '.' >/dev/null`
+	debug "[$FUNCNAME] Valid NODE JSON? $?"
+	`cat $BUFFER_INFO_FILE |jq -e '.' >/dev/null`
+	debug "[$FUNCNAME] Valid BUFFER JSON? $?"
+	`cat $SYSTEM_INFO_FILE |jq -e '.' >/dev/null`
+	debug "[$FUNCNAME] Valid SYSTEM JSON? $?"
+	`cat $CLUSTER_INFO_FILE |jq -e '.' >/dev/null`
+	debug "[$FUNCNAME] Valid CLUSTER JSON? $?"
+
     else
-        echo "FAIL"
+        debug "[$FUNCNAME] FAIL. At least 1 .json file was empty"
     fi
+    sync
 }
 
 debug() { 
-    if [ ! -z $DEBUG ]; then
+    if [ "$DEBUG" == "1" ]; then
         # PPID should be the zabbix poller process and $$ the shell process
-        echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') {$PPID} [$$] $@" >> $LOG
+        #echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') {$PPID} [$$] $@" >> $LOG
+        echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') {$PPID} [$$] $@" 
     fi
 }
 
 case $ATTR in
-    node_id)                                get_node_id                                           ;;
-    node_transport)                         get_node_transport_addr                               ;;
-    node_is_master)                         get_node_is_master                                    ;;
-    node_cluster)                           get_node_cluster                                      ;;
-    node_type)                              get_node_type                                         ;;
-    journal_events_read)                    get_system_journal_events_read                        ;;
-    journal_events_append)                  get_system_journal_events_append                      ;; 
-    journal_size)                           get_system_journal_size                               ;; 
-    journal_num_segments)                   get_system_journal_num_segments                       ;; 
-    journal_uncommitted_entries)            get_system_journal_uncommitted_entries                ;;
-    buffer_input_utilization)               get_system_buffer_input_utilization                   ;;
-    buffer_input_utilization_percent)       get_system_buffer_input_utilization_percent           ;;
-    buffer_output_utilization)              get_system_buffer_output_utilization                  ;;
-    buffer_output_utilization_percent)      get_system_buffer_output_utilization_percent          ;;
-    lb_status)                              get_system_lb_status                                  ;;
-    total_message_count)                    get_total_message_count                               ;;
-    es_cluster_health)                      get_cluster_es_state                                  ;;
-    node_throughput)                        get_node_throughput                                   ;;
-    poll_data)                              poll_data                                             ;;
-    current_deflector)                      get_current_deflector                                 ;;
-    system_lifecycle)                       get_system_lifecycle                                  ;;
-    system_isprocessing)                    get_system_isprocessing                               ;;
-    system_tz)                              get_system_tz                                         ;;
-    system_version)                         get_system_version                                    ;;
-    system_startedat)                       get_system_startedat                                  ;;
-    cluster_stream_count)                   get_cluster_stream_count                              ;;
-    cluster_stream_rule_count)              get_cluster_stream_rules_count                        ;;
-    cluster_user_count)                     get_cluster_user_count                                ;;
-    cluster_output_count)                   get_cluster_output_count                              ;;
-    cluster_dashboard_count)                get_cluster_dashboard_count                           ;;
-    cluster_input_count)                    get_cluster_input_count                               ;;
-    cluster_global_input_count)             get_cluster_global_input_count                        ;;
-    cluster_extractor_count)                get_cluster_extractor_count                           ;;
-    cluster_contentpack_count)              get_cluster_contentpack_count                         ;;
-    cluster_alerts_count)                   get_cluster_alerts_count                              ;;
+    total_message_count)                       get_total_message_count                     ;;
+    node_throughput)                           get_node_throughput                         ;;
+    current_deflector)                         get_current_deflector                       ;;
+
+    poll_data)                         exlock; poll_data                                   ;;
+
+    node_id)                           shlock; get_node_id                                 ;;
+    node_transport)                    shlock; get_node_transport_addr                     ;;
+    node_is_master)                    shlock; get_node_is_master                          ;;
+    node_cluster)                      shlock; get_node_cluster                            ;;
+    node_type)                         shlock; get_node_type                               ;;
+    journal_events_read)               shlock; get_system_journal_events_read              ;;
+    journal_events_append)             shlock; get_system_journal_events_append            ;; 
+    journal_size)                      shlock; get_system_journal_size                     ;; 
+    journal_num_segments)              shlock; get_system_journal_num_segments             ;; 
+    journal_uncommitted_entries)       shlock; get_system_journal_uncommitted_entries      ;;
+    buffer_input_utilization)          shlock; get_system_buffer_input_utilization         ;;
+    buffer_input_utilization_percent)  shlock; get_system_buffer_input_utilization_percent ;;
+    buffer_output_utilization)         shlock; get_system_buffer_output_utilization        ;;
+    buffer_output_utilization_percent) shlock; get_system_buffer_output_utilization_percent;;
+    lb_status)                         shlock; get_system_lb_status                        ;;
+    es_cluster_health)                 shlock; get_cluster_es_state                        ;;
+    system_lifecycle)                  shlock; get_system_lifecycle                        ;;
+    system_isprocessing)               shlock; get_system_isprocessing                     ;;
+    system_tz)                         shlock; get_system_tz                               ;;
+    system_version)                    shlock; get_system_version                          ;;
+    system_startedat)                  shlock; get_system_startedat                        ;;
+    cluster_stream_count)              shlock; get_cluster_stream_count                    ;;
+    cluster_stream_rule_count)         shlock; get_cluster_stream_rules_count              ;;
+    cluster_user_count)                shlock; get_cluster_user_count                      ;;
+    cluster_output_count)              shlock; get_cluster_output_count                    ;;
+    cluster_dashboard_count)           shlock; get_cluster_dashboard_count                 ;;
+    cluster_input_count)               shlock; get_cluster_input_count                     ;;
+    cluster_global_input_count)        shlock; get_cluster_global_input_count              ;;
+    cluster_extractor_count)           shlock; get_cluster_extractor_count                 ;;
+    cluster_contentpack_count)         shlock; get_cluster_contentpack_count               ;;
+    cluster_alerts_count)              shlock; get_cluster_alerts_count                    ;;
     
     *)  debug "[Attribute error] Unknown attribute to monitor." && echo "Unknown attribute to monitor"                        ;;
 esac
+
