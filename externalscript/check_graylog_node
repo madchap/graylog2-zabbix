@@ -199,6 +199,9 @@ poll_data() {
     wait
 
     if [ -s $NODE_INFO_FILE ] && [ -s $JOURNAL_INFO_FILE ] && [ -s $BUFFER_INFO_FILE ]; then
+        if [ "$DEBUG" != "1" ]; then
+            echo "OK"
+        fi
         debug "[$FUNCNAME] OK. No .json file empty"
 
 	`cat $JOURNAL_INFO_FILE |jq -e '.' >/dev/null`
@@ -213,6 +216,9 @@ poll_data() {
 	debug "[$FUNCNAME] Valid CLUSTER JSON? $?"
 
     else
+        if [ "$DEBUG" != "1" ]; then
+            echo "FAIL"
+        fi
         debug "[$FUNCNAME] FAIL. At least 1 .json file was empty"
     fi
     sync
