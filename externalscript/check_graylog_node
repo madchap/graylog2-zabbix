@@ -213,15 +213,19 @@ poll_data() {
 	debug "[$FUNCNAME] Valid CLUSTER JSON? $?"
 
     else
-        debug "[$FUNCNAME] FAIL. At least 1 .json file was empty"
+        fail "[$FUNCNAME] FAIL. At least 1 .json file was empty"
     fi
     sync
+}
+
+fail() { 
+    # PPID should be the zabbix poller process and $$ the shell process
+    echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') {$PPID} [$$] $@" >> $LOG
 }
 
 debug() { 
     if [ "$DEBUG" == "1" ]; then
         # PPID should be the zabbix poller process and $$ the shell process
-        #echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') {$PPID} [$$] $@" >> $LOG
         echo -e "$(date '+%Y%m%d %H:%M:%S.%3N') {$PPID} [$$] $@" 
     fi
 }
@@ -265,6 +269,6 @@ case $ATTR in
     cluster_contentpack_count)         shlock; get_cluster_contentpack_count               ;;
     cluster_alerts_count)              shlock; get_cluster_alerts_count                    ;;
     
-    *)  debug "[Attribute error] Unknown attribute to monitor." && echo "Unknown attribute to monitor"                        ;;
+    *)  fail "[Attribute FAIL] Unknown attribute to monitor." && echo "Unknown attribute to monitor"                        ;;
 esac
 
