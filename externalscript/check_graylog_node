@@ -192,21 +192,18 @@ poll_data() {
 
     debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"; get_node_info &
     debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"; get_system_journal_info &
-    debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"; get_system_buffer_info &
     debug "[$FUNCNAME] [$(basename $SYSTEM_INFO_FILE)] Getting system info"; get_system_system_info &
     debug "[$FUNCNAME] [$(basename $CLUSTER_INFO_FILE)] Getting cluster info"; get_cluster_info &
 
     wait
 
-    if [ -s $NODE_INFO_FILE ] && [ -s $JOURNAL_INFO_FILE ] && [ -s $BUFFER_INFO_FILE ]; then
+    if [ -s $NODE_INFO_FILE ] && [ -s $JOURNAL_INFO_FILE ]; then
         debug "[$FUNCNAME] OK. No .json file empty"
 
 	`cat $JOURNAL_INFO_FILE |jq -e '.' >/dev/null`
 	debug "[$FUNCNAME] Valid JOURNAL JSON? $?"
 	`cat $NODE_INFO_FILE |jq -e '.' >/dev/null`
 	debug "[$FUNCNAME] Valid NODE JSON? $?"
-	`cat $BUFFER_INFO_FILE |jq -e '.' >/dev/null`
-	debug "[$FUNCNAME] Valid BUFFER JSON? $?"
 	`cat $SYSTEM_INFO_FILE |jq -e '.' >/dev/null`
 	debug "[$FUNCNAME] Valid SYSTEM JSON? $?"
 	`cat $CLUSTER_INFO_FILE |jq -e '.' >/dev/null`
