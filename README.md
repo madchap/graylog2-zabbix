@@ -4,10 +4,12 @@ Basic Zabbix monitoring for Graylog2
 Mainly written for my own use, please feel to fork/use and give feedback.
 
 - Branch pre-2.1
+
 Written using Zabbix 2.4 and Graylog 1.3. Lightly tested, but does no harm anyway.
 Confirmed to work on Zabbix 3.0 and Graylog 2.0.3 as well.
 
 - Master branch 2.1 and up (for now)
+
 Tested using Zabbix 3.2 and Graylog 2.1.1
 
 For specific Elasticsearch monitoring, please head over to Elastizabbix (https://github.com/mkhpalm/elastizabbix)
@@ -28,7 +30,7 @@ This doesn't require anything on the agent. It is an external script curl'ing to
 
 ## Usage
 
-Note: As of 2.1, the default API port is 9000. It used to be 12900. You change it back to the old behavior with ```rest_listen_uri```.
+Note: As of 2.1, the default API port is 9000; It used to be 12900. You can change it back to the old behavior with ```rest_listen_uri```, pass port 9000 to the zabbix items (tedious) or simply modify the script at the top to change the port.
 
 ```
 check_graylog_node -H <HOSTNAME> -a <ATTRIBUTE> [-p <GRAYLOG_API_PORT>] [-h] [-d]
