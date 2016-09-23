@@ -38,10 +38,6 @@ List of attributes:
     - journal_uncommitted_entries
     - journal_events_read
     - journal_events_append
-    - buffer_input_utilization
-    - buffer_output_utilization
-    - buffer_input_utilization_percent
-    - buffer_output_utilization_percent
     - poll_data
     - current_deflector (not yet supported, because not accessible via regular user)
     - system_lifecycle                       
@@ -112,7 +108,7 @@ unlock()            { _lock u; }   # drop a lock
 ##### END FLOCK CONVENIENCE FUNCTION DEFINITIONS ##### 
 
 #CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD}  -D /dev/fd/4 -sS http://${HOSTNAME}:${APIPORT}"
-CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD} -sS http://${HOSTNAME}:${APIPORT}"
+CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD} -sS http://${HOSTNAME}:${APIPORT}/api"
 
 get_json_info() {
     # $1 = URI -- $2 filename
@@ -150,15 +146,6 @@ get_system_journal_size()                { debug "[$FUNCNAME] Executing"; jq -e 
 get_system_journal_num_segments()        { debug "[$FUNCNAME] Executing"; jq -e -r '.number_of_segments'          $JOURNAL_INFO_FILE; }
 get_system_journal_uncommitted_entries() { debug "[$FUNCNAME] Executing"; jq -e -r '.uncommitted_journal_entries' $JOURNAL_INFO_FILE; }
 
-
-# Buffer related information -- /system/buffers
-BUFFER_INFO_FILE=${WORKDIR}/${HOSTNAME}-buffer.json
-get_system_buffer_info()                       {                           get_json_info "/system/buffers"                     $BUFFER_INFO_FILE; }
-get_system_buffer_input_utilization()          { debug "[$FUNCNAME] Executing"; jq -e -r '.buffers.input.utilization'          $BUFFER_INFO_FILE; }
-get_system_buffer_input_utilization_percent()  { debug "[$FUNCNAME] Executing"; jq -e -r '.buffers.input.utilization_percent'  $BUFFER_INFO_FILE; }
-get_system_buffer_output_utilization()         { debug "[$FUNCNAME] Executing"; jq -e -r '.buffers.output.utilization'         $BUFFER_INFO_FILE; }
-get_system_buffer_output_utilization_percent() { debug "[$FUNCNAME] Executing"; jq -e -r '.buffers.output.utilization_percent' $BUFFER_INFO_FILE; }
-
 # System overview
 SYSTEM_INFO_FILE=${WORKDIR}/${HOSTNAME}-system.json
 get_system_system_info()  {                           get_json_info "/system"        $SYSTEM_INFO_FILE; }
@@ -193,29 +180,16 @@ poll_data() {
 
     debug "[$FUNCNAME] [$(basename $NODE_INFO_FILE)] Getting node info"; get_node_info &
     debug "[$FUNCNAME] [$(basename $JOURNAL_INFO_FILE)] Getting journal info"; get_system_journal_info &
-    debug "[$FUNCNAME] [$(basename $BUFFER_INFO_FILE)] Getting buffer info"; get_system_buffer_info &
     debug "[$FUNCNAME] [$(basename $SYSTEM_INFO_FILE)] Getting system info"; get_system_system_info &
     debug "[$FUNCNAME] [$(basename $CLUSTER_INFO_FILE)] Getting cluster info"; get_cluster_info &
 
     wait
 
-    if [ -s $NODE_INFO_FILE ] && [ -s $JOURNAL_INFO_FILE ] && [ -s $BUFFER_INFO_FILE ]; then
-        debug "[$FUNCNAME] OK. No .json file empty"
+    [[ -s $NODE_INFO_FILE ]] && `cat $JOURNAL_INFO_FILE |jq -e '.' >/dev/null`      || fail "[$FUNCNAME] FAIL. Could not retrieve JSON for node info"
+    [[ -s $JOURNAL_INFO_FILE ]] && `cat $NODE_INFO_FILE |jq -e '.' >/dev/null`      || fail "[$FUNCNAME] FAIL. Could not retrieve JSON for journal info"
+    [[ -s $SYSTEM_INFO_FILE ]] && `cat $SYSTEM_INFO_FILE |jq -e '.' >/dev/null`     || fail "[$FUNCNAME] FAIL. Could not retrieve JSON for system info"
+    [[ -s $CLUSTER_INFO_FILE ]] && `cat $CLUSTER_INFO_FILE |jq -e '.' >/dev/null`   || fail "[$FUNCNAME] FAIL. Could not retrieve JSON for cluster info"
 
-	`cat $JOURNAL_INFO_FILE |jq -e '.' >/dev/null`
-	debug "[$FUNCNAME] Valid JOURNAL JSON? $?"
-	`cat $NODE_INFO_FILE |jq -e '.' >/dev/null`
-	debug "[$FUNCNAME] Valid NODE JSON? $?"
-	`cat $BUFFER_INFO_FILE |jq -e '.' >/dev/null`
-	debug "[$FUNCNAME] Valid BUFFER JSON? $?"
-	`cat $SYSTEM_INFO_FILE |jq -e '.' >/dev/null`
-	debug "[$FUNCNAME] Valid SYSTEM JSON? $?"
-	`cat $CLUSTER_INFO_FILE |jq -e '.' >/dev/null`
-	debug "[$FUNCNAME] Valid CLUSTER JSON? $?"
-
-    else
-        fail "[$FUNCNAME] FAIL. At least 1 .json file was empty"
-    fi
     sync
 }
 
@@ -248,10 +222,6 @@ case $ATTR in
     journal_size)                      shlock; get_system_journal_size                     ;; 
     journal_num_segments)              shlock; get_system_journal_num_segments             ;; 
     journal_uncommitted_entries)       shlock; get_system_journal_uncommitted_entries      ;;
-    buffer_input_utilization)          shlock; get_system_buffer_input_utilization         ;;
-    buffer_input_utilization_percent)  shlock; get_system_buffer_input_utilization_percent ;;
-    buffer_output_utilization)         shlock; get_system_buffer_output_utilization        ;;
-    buffer_output_utilization_percent) shlock; get_system_buffer_output_utilization_percent;;
     lb_status)                         shlock; get_system_lb_status                        ;;
     es_cluster_health)                 shlock; get_cluster_es_state                        ;;
     system_lifecycle)                  shlock; get_system_lifecycle                        ;;
