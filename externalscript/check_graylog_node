@@ -93,7 +93,7 @@ fi
 
 ##### BEGIN FLOCK CONVENIENCE FUNCTION DEFINITIONS ##### 
 ### HEADER ###
-LOCKFILE="${WORKDIR}/$(basename $0 .sh)-${HOSTNAME}.lock"
+LOCKFILE="${WORKDIR}/$(basename $0)-${HOSTNAME}.lock"
 LOCKFD=99
  
 # PRIVATE
@@ -111,17 +111,18 @@ shlock()            { _lock s; }   # obtain a shared lock
 unlock()            { _lock u; }   # drop a lock
 ##### END FLOCK CONVENIENCE FUNCTION DEFINITIONS ##### 
 
-CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD}  -D /dev/fd/4 -sS http://${HOSTNAME}:${APIPORT}"
+#CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD}  -D /dev/fd/4 -sS http://${HOSTNAME}:${APIPORT}"
+CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD} -sS http://${HOSTNAME}:${APIPORT}"
 
 get_json_info() {
     # $1 = URI -- $2 filename
     debug "[$FUNCNAME] [$(basename $2)] Pulling json data"
     starttime=`date +%s%3N`
-	HEADERS_DEBUG=/dev/null
-    if [ "$DEBUG" == 1 ]; then
-		HEADERS_DEBUG=$LOG
-	fi
-	exec 4> >(tee -a $HEADERS_DEBUG >/dev/null)
+	#HEADERS_DEBUG=/dev/null
+    #if [ "$DEBUG" == 1 ]; then
+	#	HEADERS_DEBUG=$LOG
+	#fi
+	#exec 4> >(tee -a $HEADERS_DEBUG >/dev/null)
 	#set -x
     ${CURL_BASE_CMD}${1} | jq '.' > $2
 	#set +x
