@@ -7,7 +7,7 @@ DEBUG=0
 CREDS_FILE=$(dirname $BASH_SOURCE)/check_graylog_node_creds.txt
 source $CREDS_FILE
 WORKDIR=/tmp
-LOG=${WORKDIR}/$(basename $0 .sh).log
+LOG=${WORKDIR}/$(basename $0).log
 APIPORT=12900
 ## End defaults  ##
 
