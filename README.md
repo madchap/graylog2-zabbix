@@ -3,12 +3,12 @@ Basic Zabbix monitoring for Graylog2
 
 Mainly written for my own use, please feel to fork/use and give feedback.
 
-- Branch pre-2.1
+### Branch pre-2.1
 
 Written using Zabbix 2.4 and Graylog 1.3. Lightly tested, but does no harm anyway.
 Confirmed to work on Zabbix 3.0 and Graylog 2.0.3 as well.
 
-- Master branch 2.1 and up (for now)
+### Master branch 2.1 and up (for now)
 
 Tested using Zabbix 3.2 and Graylog 2.1.1
 
