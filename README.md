@@ -3,14 +3,14 @@ Basic Zabbix monitoring for Graylog2
 
 Mainly written for my own use, please feel to fork/use and give feedback.
 
-### Branch pre-2.1
+### Branch pre-2.1 - Graylog 2.1 and below
 
 Written using Zabbix 2.4 and Graylog 1.3. Lightly tested, but does no harm anyway.
 Confirmed to work on Zabbix 3.0 and Graylog 2.0.3 as well.
 
-### Master branch 2.1 and up (for now)
+### Master branch - Graylog 2.1 and up
 
-Tested using Zabbix 3.2 and Graylog 2.1.1
+Tested using Zabbix 3.2 and Graylog 2.1.1, 2.2.3.
 
 For specific Elasticsearch monitoring, please head over to Elastizabbix (https://github.com/mkhpalm/elastizabbix)
 
