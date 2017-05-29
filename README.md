@@ -20,6 +20,8 @@ For specific Elasticsearch monitoring, please head over to Elastizabbix (https:/
 
 This doesn't require anything on the agent. It is an external script curl'ing to the Graylog2 API.
 
+Please note, if running by hand, that the `poll_data` item has to be run first.
+
 ## How to install
   * Create a Graylog2 user with the "reader" role
   * Enter the credentials in the check_graylog_node_creds.txt file.
