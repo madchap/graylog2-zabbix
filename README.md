@@ -1,4 +1,6 @@
 # graylog2-zabbix
+> No longer actively maintained.
+
 Basic Zabbix monitoring for Graylog2
 
 Mainly written for my own use, please feel to fork/use and give feedback.
