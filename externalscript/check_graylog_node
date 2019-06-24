@@ -108,7 +108,7 @@ unlock()            { _lock u; }   # drop a lock
 ##### END FLOCK CONVENIENCE FUNCTION DEFINITIONS ##### 
 
 #CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD}  -D /dev/fd/4 -sS http://${HOSTNAME}:${APIPORT}"
-CURL_BASE_CMD="curl -u ${USERNAME}:${PASSWORD} -sS http://${HOSTNAME}:${APIPORT}/api"
+CURL_BASE_CMD="curl -u '${USERNAME}':'${PASSWORD}' -sS http://${HOSTNAME}:${APIPORT}/api"
 
 get_json_info() {
     # $1 = URI -- $2 filename
